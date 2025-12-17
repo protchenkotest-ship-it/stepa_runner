@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Runner: Осенний Бегун</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Carter+One&family=Fredoka+One&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0; padding: 0;
+            background: #1a1a1a;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; font-family: 'Fredoka One', cursive;
+            overflow: hidden; 
+            user-select: none; -webkit-user-select: none; touch-action: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%; max-width: 800px; 
+            aspect-ratio: 2 / 1; 
+            height: auto;
+            background-color: #87CEEB;
+            border: 4px solid #3e2723; border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7); overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        canvas { display: block; width: 100%; height: 100%; }
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column;
+            justify-content: space-between; padding: 15px; box-sizing: border-box; z-index: 5;
+        }
+
+        /* --- UI --- */
+        .hud {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            font-size: 24px; color: #FFD700;
+            text-shadow: 2px 2px 0 #3e2723;
+        }
+
+        .hud-left { display: flex; flex-direction: column; gap: 8px; }
+
+        .stat-wrap {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(93, 64, 55, 0.9);
+            padding: 5px 15px; border-radius: 20px;
+            border: 2px solid #FFD700;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            width: fit-content;
+        }
+
+        .icon { width: 32px; height: 32px; object-fit: contain; }
+
+        @media (max-width: 600px) {
+            .hud { font-size: 14px; }
+            .stat-wrap { padding: 4px 10px; border-radius: 12px; border-width: 1px; gap: 6px; }
+            .icon { width: 18px; height: 18px; }
+            .hud-left { gap: 4px; }
+            h1 { font-size: 28px !important; margin-bottom: 10px !important; }
+            .menu-item { font-size: 18px !important; margin: 10px 0 !important; }
+            #final-score { font-size: 32px !important; }
+            button { font-size: 18px !important; padding: 12px 30px !important; }
+        }
+
+        /* ЭКРАНЫ */
+        #loading-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #2d1e1b; z-index: 20;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; font-size: 18px;
+        }
+        #progress-bar {
+            width: 50%; height: 15px; background: #555; margin-top: 15px;
+            border-radius: 10px; overflow: hidden; border: 2px solid #fff;
+        }
+        #progress-fill { width: 0%; height: 100%; background: #00ff00; transition: width 0.2s; }
+
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10; pointer-events: auto; cursor: pointer;
+        }
+        .splash-image-bg { width: 100%; height: 100%; object-fit: cover; }
+
+        #game-over-screen {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; z-index: 10; pointer-events: auto;
+            background: linear-gradient(to bottom, #5d4037, #3e2723);
+            padding: 20px; border-radius: 20px; border: 4px solid #2d1e1b;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8); color: white; width: 80%; max-width: 400px;
+        }
+
+        h1 { margin: 0 0 20px 0; font-size: 40px; color: #FF5722; text-transform: uppercase; text-shadow: 3px 3px 0 #2d1e1b; }
+        
+        .menu-item { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 24px; color: #FFD700; margin: 20px 0; }
+
+        button {
+            font-family: 'Carter One', cursive;
+            background: linear-gradient(to bottom, #ff8f00, #d84315);
+            border: 3px solid #3e2723; padding: 15px 50px; font-size: 24px; color: #fff;
+            cursor: pointer; border-radius: 40px; text-transform: uppercase;
+            box-shadow: 0 6px 0 #2d1e1b; margin-top: 15px;
+            transition: transform 0.1s;
+        }
+        button:active { transform: translateY(4px); box-shadow: 0 2px 0 #2d1e1b; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    
+    <div id="ui-layer">
+        <div class="hud">
+            <div class="hud-left">
+                <div class="stat-wrap">
+                    <img src="assets/coin.png" class="icon" alt="Coin">
+                    <span id="score-display">0</span>
+                </div>
+                <div class="stat-wrap">
+                    <img src="assets/heart.png" class="icon" alt="Heart">
+                    <span id="lives-display">3</span>
+                </div>
+            </div>
+            <div class="stat-wrap">
+                <span>Рек: <span id="highscore-display">0</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-screen">
+        <div id="loading-text">Загрузка...</div>
+        <div id="progress-bar"><div id="progress-fill"></div></div>
+    </div>
+
+    <div id="start-screen" class="hidden" onclick="startGame()">
+        <img src="assets/splash.png" class="splash-image-bg" alt="Start">
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+        <h1>ТЫ УПАЛ!</h1>
+        <div class="menu-item">
+            <span>Счет: </span>
+            <img src="assets/coin.png" class="icon">
+            <span id="final-score">0</span>
+        </div>
+        <button onclick="startGame()">ЕЩЕ РАЗ</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() { canvas.width = 800; canvas.height = 400; }
+    resizeCanvas();
+
+    // --- ASSETS ---
+    const assets = { player: [], bgs: [], items: {}, sounds: {} };
+    let loadedAssets = 0;
+    
+    const assetsToLoad = [
+        { type: 'img', name: 'coin', src: 'assets/coin.png' },
+        { type: 'img', name: 'bottle', src: 'assets/bottle.png' },
+        { type: 'img', name: 'burger', src: 'assets/burger.png' },
+        { type: 'img', name: 'banana', src: 'assets/banana.png' },
+        { type: 'img', name: 'heart', src: 'assets/heart.png' },
+        { type: 'img', name: 'splash', src: 'assets/splash.png' },
+        
+        { type: 'audio', name: 'music', src: 'assets/music.mp3' },
+        { type: 'audio', name: 'coin', src: 'assets/coin.mp3' },
+        { type: 'audio', name: 'fail', src: 'assets/fail.mp3' },
+
+        ...Array.from({length: 8}, (_, i) => ({ type: 'bg', src: `assets/background${i===0 ? '' : '_' + (i+1)}.png` })),
+        ...Array.from({length: 48}, (_, i) => ({ type: 'player', src: `assets/player/run_${i}.png` }))
+    ];
+
+    function updateLoading() {
+        loadedAssets++;
+        const percent = Math.floor((loadedAssets / assetsToLoad.length) * 100);
+        document.getElementById('progress-fill').style.width = `${percent}%`;
+        
+        if (loadedAssets >= assetsToLoad.length) {
+            setTimeout(() => {
+                document.getElementById('loading-screen').classList.add('hidden');
+                document.getElementById('start-screen').classList.remove('hidden');
+            }, 500);
+        }
+    }
+
+    assetsToLoad.forEach(item => {
+        if (item.type === 'audio') {
+            const audio = new Audio();
+            audio.src = item.src;
+            audio.oncanplaythrough = () => { if (!audio.loaded) { audio.loaded = true; assets.sounds[item.name] = audio; updateLoading(); }};
+            audio.onerror = () => updateLoading();
+            audio.load();
+        } else {
+            const img = new Image();
+            img.src = item.src;
+            img.onload = () => {
+                if (item.type === 'player') assets.player.push(img);
+                else if (item.type === 'bg') assets.bgs.push(img);
+                else assets.items[item.name] = img;
+                updateLoading();
+            };
+            img.onerror = () => updateLoading();
+        }
+    });
+
+    // --- MUSIC START ---
+    let musicStarted = false;
+    const startMusic = () => {
+        if (!musicStarted && assets.sounds.music) {
+            assets.sounds.music.loop = true;
+            assets.sounds.music.volume = 0.5;
+            assets.sounds.music.play().then(() => musicStarted = true).catch(()=>{});
+        }
+    };
+    document.addEventListener('click', startMusic, { once: true });
+    document.addEventListener('touchstart', startMusic, { once: true });
+
+    // --- VARIABLES ---
+    let frames = 0;
+    let score = 0; 
+    let lives = 3; 
+    let highScore = localStorage.getItem('runnerCoinRecord') || 0; 
+    let gameSpeed = 5;
+    let isPlaying = false;
+    let animationId;
+    const GROUND_LEVEL = 370; 
+
+    document.getElementById('highscore-display').innerText = `${highScore}`;
+
+    // --- PLAYER ---
+    const player = {
+        x: 100, y: 240, w: 144, h: 192, dy: 0,
+        jumpForce: 13, gravity: 0.6, grounded: false,
+        jumpCount: 0, maxJumps: 2,
+        currentFrameIndex: 0, totalFrames: 48, frameTimer: 0, frameInterval: 2,
+        isHurt: false, hurtTimer: 0,
+
+        jump: function() {
+            if (this.grounded) {
+                this.dy = -this.jumpForce;
+                this.grounded = false;
+                this.jumpCount = 1;
+            } else if (this.jumpCount < this.maxJumps) {
+                this.dy = -this.jumpForce; 
+                this.jumpCount++;
+            }
+        },
+
+        draw: function() {
+            if (this.isHurt && Math.floor(frames / 5) % 2 === 0) return;
+            ctx.save();
+            ctx.fillStyle = "rgba(0, 0, 0, 0.1)"; 
+            ctx.beginPath();
+            ctx.ellipse(this.x + this.w / 2, this.y + this.h - 5, this.w / 2.5, this.w / 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            const img = assets.player.find(i => i.src.includes(`run_${this.currentFrameIndex}.png`));
+            if(img) ctx.drawImage(img, this.x, this.y, this.w, this.h);
+        },
+
+        update: function() {
+            if (this.isHurt) {
+                this.hurtTimer--;
+                if (this.hurtTimer <= 0) this.isHurt = false;
+            }
+            this.dy += this.gravity; this.y += this.dy;
+
+            if (this.y + this.h > GROUND_LEVEL) { 
+                this.y = GROUND_LEVEL - this.h; this.dy = 0; this.grounded = true; this.jumpCount = 0; 
+            } else { this.grounded = false; }
+            
+            if (this.grounded) {
+                this.frameTimer++;
+                if (this.frameTimer >= this.frameInterval) {
+                    this.frameTimer = 0;
+                    this.currentFrameIndex = (this.currentFrameIndex + 1) % this.totalFrames;
+                }
+            } else { this.currentFrameIndex = 15; }
+            this.draw();
+        }
+    };
+
+    // --- PARTICLES ---
+    const particles = [];
+    class Particle {
+        constructor(x, y) {
+            this.x = x; this.y = y; this.size = Math.random()*5+3; 
+            this.vx = Math.random()*6-3; this.vy = Math.random()*6-3; this.life = 1;
+        }
+        update() { this.x += this.vx; this.y += this.vy; this.size *= 0.95; this.life -= 0.05; }
+        draw() { ctx.save(); ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
+    }
+
+    // --- OBJECTS ---
+    const obstacles = []; const coins = [];
+    class Obstacle {
+        constructor() {
+            this.x = 800; const r = Math.random();
+            if (r < 0.33) { 
+                this.type = 'banana'; this.w = 40; this.h = 30; this.y = GROUND_LEVEL - 30; 
+            } else if (r < 0.66) { 
+                // БУРГЕР: 50% шанс появиться высоко в воздухе
+                this.type = 'burger'; this.w = 50; this.h = 40; 
+                if (Math.random() < 0.5) {
+                    this.y = GROUND_LEVEL - 130; // Летающий (нужен двойной прыжок)
+                } else {
+                    this.y = GROUND_LEVEL - 40;  // Обычный
+                }
+            } else { 
+                this.type = 'bottle'; this.w = 35; this.h = 70; this.y = GROUND_LEVEL - this.h; 
+            }
+            this.markedForDeletion = false;
+        }
+        update() { this.x -= gameSpeed; if (this.x + this.w < 0) this.markedForDeletion = true; this.draw(); }
+        draw() { 
+            if (this.type === 'banana') ctx.drawImage(assets.items.banana, this.x, this.y, this.w, this.h);
+            else if (this.type === 'burger') ctx.drawImage(assets.items.burger, this.x, this.y, this.w, this.h);
+            else ctx.drawImage(assets.items.bottle, this.x, this.y, this.w, this.h);
+        }
+    }
+    class Coin {
+        constructor() { this.w = 30; this.h = 30; this.x = 800 + Math.random()*200; this.y = 150 + Math.random()*100; this.angle = 0; }
+        update() { this.x -= gameSpeed; this.angle += 0.1; if (this.x + this.w < 0) this.markedForDeletion = true; this.draw(); }
+        draw() { ctx.save(); ctx.translate(this.x+15, this.y+15); ctx.scale(Math.sin(this.angle), 1); ctx.drawImage(assets.items.coin, -15, -15, 30, 30); ctx.restore(); }
+    }
+
+    // --- INPUT ---
+    const handleInput = (e) => {
+        if (!isPlaying) return;
+        if (e.type === 'keydown' && (e.code === 'Space' || e.code === 'ArrowUp')) { player.jump(); }
+        else if (e.type === 'touchstart' || e.type === 'mousedown') { player.jump(); }
+    };
+
+    window.addEventListener('keydown', handleInput);
+    const container = document.getElementById('game-container');
+    container.addEventListener('mousedown', handleInput);
+    container.addEventListener('touchstart', handleInput, {passive: false});
+
+    // --- BACKGROUND ---
+    let bgX = 0; let bgIndex = 0;
+    function handleBackground() {
+        bgX -= gameSpeed * 0.5; if (bgX <= -canvas.width) { bgX = 0; bgIndex = (bgIndex + 1) % assets.bgs.length; }
+        const currentBg = assets.bgs[bgIndex]; const nextBg = assets.bgs[(bgIndex + 1) % assets.bgs.length];
+        if(currentBg) ctx.drawImage(currentBg, bgX, 0, canvas.width, canvas.height);
+        if(nextBg) ctx.drawImage(nextBg, bgX + canvas.width - 2, 0, canvas.width, canvas.height);
+    }
+
+    // --- LOOP ---
+    function animate() {
+        if (!isPlaying) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        handleBackground();
+        player.update();
+        
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].update(); particles[i].draw();
+            if (particles[i].life <= 0) { particles.splice(i, 1); i--; }
+        }
+
+        frames++;
+        if (frames % Math.floor(1000 / gameSpeed) === 0 && Math.random() < 0.6) obstacles.push(new Obstacle());
+        if (frames % 100 === 0) coins.push(new Coin()); 
+
+        obstacles.forEach((o, i) => {
+            o.update(); if (o.markedForDeletion) obstacles.splice(i, 1);
+            
+            let padding = 15; 
+            if (o.type === 'banana') padding = 12; 
+            if (o.type === 'burger') padding = 20; 
+
+            if (player.x < o.x + o.w - padding && 
+                player.x + player.w > o.x + padding && 
+                player.y < o.y + o.h - padding && 
+                player.y + player.h > o.y + padding) {
+                
+                if (!player.isHurt) {
+                    lives--; 
+                    document.getElementById('lives-display').innerText = lives;
+                    if(assets.sounds.fail) { assets.sounds.fail.currentTime = 0; assets.sounds.fail.play().catch(()=>{}); }
+                    if (lives <= 0) gameOver();
+                    else { player.isHurt = true; player.hurtTimer = 100; }
+                }
+            }
+        });
+        
+        coins.forEach((c, i) => {
+            c.update(); if (c.markedForDeletion) coins.splice(i, 1);
+            if (player.x < c.x + c.w - 40 && player.x + player.w > c.x + 40 && 
+                player.y < c.y + c.h - 40 && player.y + player.h > c.y + 40) {
+                score++; 
+                if(assets.sounds.coin) { assets.sounds.coin.currentTime = 0; assets.sounds.coin.play().catch(()=>{}); }
+                for(let k=0; k<15; k++) particles.push(new Particle(c.x+15, c.y+15)); 
+                coins.splice(i, 1);
+            }
+        });
+
+        gameSpeed += 0.001; 
+        document.getElementById('score-display').innerText = score;
+        animationId = requestAnimationFrame(animate);
+    }
+
+    function startGame() {
+        assets.bgs.sort((a, b) => a.src.localeCompare(b.src));
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('game-over-screen').classList.add('hidden');
+        obstacles.length = 0; coins.length = 0; particles.length = 0;
+        score = 0; frames = 0; gameSpeed = 6;
+        lives = 3; document.getElementById('lives-display').innerText = lives;
+        
+        player.y = GROUND_LEVEL - player.h; player.dy = 0; player.grounded = false; player.jumpCount = 0;
+        player.isHurt = false;
+        
+        bgX = 0; bgIndex = 0;
+        document.getElementById('score-display').innerText = "0";
+        if (assets.sounds.music && musicStarted) { assets.sounds.music.play().catch(()=>{}); }
+        isPlaying = true; animate();
+    }
+
+    function gameOver() {
+        isPlaying = false; cancelAnimationFrame(animationId);
+        if(assets.sounds.music) assets.sounds.music.pause();
+        if (score > highScore) { highScore = score; localStorage.setItem('runnerCoinRecord', highScore); }
+        document.getElementById('highscore-display').innerText = `${highScore}`;
+        document.getElementById('final-score').innerText = score;
+        document.getElementById('game-over-screen').classList.remove('hidden');
+    }
+</script>
+</body>
+</html>
