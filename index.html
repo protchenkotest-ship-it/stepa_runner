@@ -14,7 +14,7 @@
             background: #1a1a1a;
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; font-family: 'Fredoka One', cursive;
-            touch-action: none; /* Отключаем системные жесты */
+            touch-action: none; /* Важно: отключаем скролл и зум */
             user-select: none;
             -webkit-user-select: none;
         }
@@ -51,37 +51,7 @@
         }
         .icon { width: 40px; height: 40px; object-fit: contain; }
 
-        /* --- МОБИЛЬНОЕ УПРАВЛЕНИЕ (КНОПКИ) --- */
-        #mobile-controls {
-            display: none; /* На ПК скрыто */
-            position: absolute; 
-            bottom: 20px; left: 20px;
-            gap: 20px;
-            z-index: 20;
-        }
-
-        .control-btn {
-            width: 80px; height: 80px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 3px solid rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 40px; color: white;
-            pointer-events: auto; /* Чтобы на них можно было нажать */
-            touch-action: none;
-        }
-        
-        .control-btn:active {
-            background: rgba(255, 255, 255, 0.5);
-            transform: scale(0.95);
-        }
-
-        /* Показываем кнопки только на тач-устройствах или маленьких экранах */
-        @media (hover: none) and (pointer: coarse), (max-width: 1000px) {
-            #mobile-controls { display: flex; }
-        }
-
-        /* Адаптация UI */
+        /* Вертикальный режим */
         @media (max-width: 600px) and (orientation: portrait) {
             #ui-layer { padding: 10px; }
             .hud { font-size: 14px; flex-wrap: wrap; align-items: center; }
@@ -89,19 +59,25 @@
             .stat-wrap { padding: 4px 8px; border-radius: 10px; border-width: 1px; gap: 5px; background: rgba(93, 64, 55, 0.6); }
             .icon { width: 16px; height: 16px; }
             #highscore-label { display: none; }
-            
-            /* Кнопки чуть меньше в вертикалке */
-            .control-btn { width: 60px; height: 60px; font-size: 30px; }
-            #mobile-controls { bottom: 10px; left: 10px; gap: 10px; }
         }
 
+        /* Горизонтальный режим */
         @media (max-width: 900px) and (orientation: landscape) {
             .hud { font-size: 20px; }
             .stat-wrap { padding: 5px 12px; border-radius: 15px; border-width: 2px; }
             .icon { width: 24px; height: 24px; }
         }
 
-        /* ЭКРАНЫ */
+        /* Подсказка управления на старте */
+        .controls-hint {
+            color: #fff; font-size: 18px; margin-top: 10px; opacity: 0.8;
+            text-shadow: 1px 1px 0 #000; display: none;
+        }
+        /* Показываем подсказку только на мобильных */
+        @media (hover: none) and (pointer: coarse) {
+            .controls-hint { display: block; }
+        }
+
         #loading-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #2d1e1b; z-index: 20;
@@ -117,8 +93,10 @@
         #start-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10; pointer-events: auto; cursor: pointer;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            text-align: center;
         }
-        .splash-image-bg { width: 100%; height: 100%; object-fit: cover; }
+        .splash-image-bg { position: absolute; top:0; left:0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
 
         #game-over-screen {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -164,11 +142,6 @@
                 <span id="highscore-label">Рек: </span><span id="highscore-display">0</span>
             </div>
         </div>
-        
-        <div id="mobile-controls">
-            <div class="control-btn" id="btn-left">⬅️</div>
-            <div class="control-btn" id="btn-right">➡️</div>
-        </div>
     </div>
 
     <div id="loading-screen">
@@ -178,6 +151,9 @@
 
     <div id="start-screen" class="hidden" onclick="startGame()">
         <img src="assets/splash.png" class="splash-image-bg" alt="Степа на пробежке">
+        <div class="controls-hint" style="position: absolute; bottom: 20px; width: 100%;">
+            <p>Левый край - Назад | Центр - Прыжок | Правый край - Вперед</p>
+        </div>
     </div>
 
     <div id="game-over-screen" class="hidden">
@@ -312,6 +288,7 @@
                 if (this.hurtTimer <= 0) this.isHurt = false;
             }
             
+            // Управление клавиатурой
             if (keys['ArrowRight'] || keys['KeyD']) { this.x += this.moveSpeed; }
             if (keys['ArrowLeft'] || keys['KeyA']) { this.x -= this.moveSpeed; }
             
@@ -401,7 +378,7 @@
         draw() { ctx.drawImage(assets.items.medkit, this.x, this.y, this.w, this.h); }
     }
 
-    // --- INPUT (KEYBOARD & TOUCH BUTTONS) ---
+    // --- INPUT (ОБНОВЛЕНО: НЕВИДИМЫЕ СЕНСОРНЫЕ ЗОНЫ) ---
     const keys = {}; 
     window.addEventListener('keydown', e => {
         keys[e.code] = true;
@@ -409,34 +386,59 @@
     });
     window.addEventListener('keyup', e => { keys[e.code] = false; });
 
-    // Сенсорное управление КНОПКАМИ (Влево/Вправо)
-    const btnLeft = document.getElementById('btn-left');
-    const btnRight = document.getElementById('btn-right');
-
-    const bindBtn = (btn, code) => {
-        btn.addEventListener('touchstart', (e) => { 
-            e.preventDefault(); 
-            e.stopPropagation(); // Не дает сработать прыжку
-            keys[code] = true; 
-        });
-        btn.addEventListener('touchend', (e) => { 
-            e.preventDefault(); 
-            e.stopPropagation(); 
-            keys[code] = false; 
-        });
-    };
-    bindBtn(btnLeft, 'ArrowLeft');
-    bindBtn(btnRight, 'ArrowRight');
-
-    // Глобальный тач для ПРЫЖКА (срабатывает, если не попали по кнопкам)
-    const handleTouchJump = (e) => { 
-        // Проверяем, что нажали не на кнопки
-        if (e.target.classList.contains('control-btn')) return;
-        if (isPlaying) player.jump(); 
-    };
+    // Обработка касаний
     const container = document.getElementById('game-container');
-    container.addEventListener('mousedown', handleTouchJump);
-    container.addEventListener('touchstart', handleTouchJump, {passive: false});
+    const containerRect = container.getBoundingClientRect();
+
+    // Функция обработки касаний (Мультитач)
+    const handleTouch = (e) => {
+        if (!isPlaying) return;
+        e.preventDefault(); // Запрет скролла
+
+        // Сбрасываем флаги движения перед проверкой всех пальцев
+        keys['ArrowLeft'] = false;
+        keys['ArrowRight'] = false;
+
+        // Перебираем все активные пальцы на экране
+        for (let i = 0; i < e.touches.length; i++) {
+            const touch = e.touches[i];
+            const touchX = touch.clientX;
+            const screenW = window.innerWidth;
+
+            // ЗОНА 1: ЛЕВАЯ ЧАСТЬ (0-30%) -> НАЗАД
+            if (touchX < screenW * 0.3) {
+                keys['ArrowLeft'] = true;
+            }
+            // ЗОНА 2: ПРАВАЯ ЧАСТЬ (70-100%) -> ВПЕРЕД
+            else if (touchX > screenW * 0.7) {
+                keys['ArrowRight'] = true;
+            }
+        }
+    };
+
+    // Отдельно ловим НАЧАЛО касания для прыжка (Центральная зона)
+    container.addEventListener('touchstart', (e) => {
+        if (!isPlaying) return;
+        
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const t = e.changedTouches[i];
+            const screenW = window.innerWidth;
+            
+            // Если коснулись ЦЕНТРА (между 30% и 70%), то ПРЫЖОК
+            if (t.clientX >= screenW * 0.3 && t.clientX <= screenW * 0.7) {
+                player.jump();
+            }
+        }
+        // Запускаем логику движения
+        handleTouch(e);
+    }, {passive: false});
+
+    container.addEventListener('touchmove', handleTouch, {passive: false});
+    
+    // Если убрали палец - обновляем состояние
+    container.addEventListener('touchend', (e) => {
+        handleTouch(e);
+    }, {passive: false});
 
 
     // --- BACKGROUND ---
