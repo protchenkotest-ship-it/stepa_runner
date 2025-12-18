@@ -321,7 +321,7 @@
                 this.type = 'banana'; this.w = 70; this.h = 50; this.y = GROUND_LEVEL - 50; 
             } else if (r < 0.66) { 
                 this.type = 'burger'; this.w = 72; this.h = 56; 
-                if (Math.random() < 0.5) this.y = GROUND_LEVEL - 280; else this.y = GROUND_LEVEL - 56;
+                if (Math.random() < 0.5) this.y = GROUND_LEVEL - 210; else this.y = GROUND_LEVEL - 56;
             } else { 
                 this.type = 'bottle'; this.w = 48; this.h = 96; this.y = GROUND_LEVEL - this.h; 
             }
@@ -388,14 +388,16 @@
                  particles.push(new Particle(o.x + o.w/2 + (Math.random()*10-5), o.y, 'bubble'));
             }
             
-            let padding = 25; 
-            if (o.type === 'banana') padding = 20; 
-            if (o.type === 'burger') padding = 30; 
+            // Хитбоксы: ИНДИВИДУАЛЬНЫЕ отступы по X и Y
+            let padX = 0; let padY = 0;
+            if (o.type === 'banana') { padX = 15; padY = 20; } // Широкий, но очень низкий
+            else if (o.type === 'burger') { padX = 20; padY = 15; } // Компактный центр
+            else if (o.type === 'bottle') { padX = 15; padY = 10; } // Узкий, высокий
 
-            if (player.x < o.x + o.w - padding && 
-                player.x + player.w > o.x + padding && 
-                player.y < o.y + o.h - padding && 
-                player.y + player.h > o.y + padding) {
+            if (player.x < o.x + o.w - padX && 
+                player.x + player.w > o.x + padX && 
+                player.y < o.y + o.h - padY && 
+                player.y + player.h > o.y + padY) {
                 
                 if (!player.isHurt) {
                     lives--; 
@@ -409,11 +411,12 @@
         
         coins.forEach((c, i) => {
             c.update(); if (c.markedForDeletion) coins.splice(i, 1);
+            // Зона сбора монет тоже чуть меньше (отступ 60px)
             if (player.x < c.x + c.w - 60 && player.x + player.w > c.x + 60 && 
                 player.y < c.y + c.h - 60 && player.y + player.h > c.y + 60) {
                 score++; 
                 if(assets.sounds.coin) { 
-                    assets.sounds.coin.volume = 0.5; // ТИШЕ
+                    assets.sounds.coin.volume = 0.5;
                     assets.sounds.coin.currentTime = 0; 
                     assets.sounds.coin.play().catch(()=>{}); 
                 }
