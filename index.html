@@ -49,24 +49,23 @@
         }
         .icon { width: 40px; height: 40px; object-fit: contain; }
 
-        /* Вертикальный режим (Мобильные) */
+        /* Вертикальный режим */
         @media (max-width: 600px) and (orientation: portrait) {
             #ui-layer { padding: 10px; }
             .hud { font-size: 14px; flex-wrap: wrap; align-items: center; }
-            .hud-left { flex-direction: row; gap: 5px; } /* В строку */
+            .hud-left { flex-direction: row; gap: 5px; } 
             .stat-wrap { padding: 4px 8px; border-radius: 10px; border-width: 1px; gap: 5px; background: rgba(93, 64, 55, 0.6); }
             .icon { width: 16px; height: 16px; }
             #highscore-label { display: none; }
         }
 
-        /* Горизонтальный режим (Мобильные) */
+        /* Горизонтальный режим */
         @media (max-width: 900px) and (orientation: landscape) {
             .hud { font-size: 20px; }
             .stat-wrap { padding: 5px 12px; border-radius: 15px; border-width: 2px; }
             .icon { width: 24px; height: 24px; }
         }
 
-        /* ЭКРАНЫ */
         #loading-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #2d1e1b; z-index: 20;
@@ -238,6 +237,9 @@
         x: 150, y: 380, w: 230, h: 300, 
         dy: 0, jumpForce: 22, gravity: 1.1, grounded: false,
         jumpCount: 0, maxJumps: 2,
+        // НОВОЕ: Скорость движения влево/вправо
+        moveSpeed: 8,
+        
         currentFrameIndex: 0, totalFrames: 48, frameTimer: 0, frameInterval: 2,
         isHurt: false, hurtTimer: 0,
 
@@ -269,7 +271,24 @@
                 this.hurtTimer--;
                 if (this.hurtTimer <= 0) this.isHurt = false;
             }
-            this.dy += this.gravity; this.y += this.dy;
+            
+            // --- НОВОЕ УПРАВЛЕНИЕ: ВЛЕВО/ВПРАВО ---
+            if (keys['ArrowRight'] || keys['KeyD']) {
+                this.x += this.moveSpeed;
+            }
+            if (keys['ArrowLeft'] || keys['KeyA']) {
+                this.x -= this.moveSpeed;
+            }
+            
+            // ОГРАНИЧЕНИЯ ЭКРАНА (чтобы не убежал)
+            // Левая граница: 0
+            if (this.x < 0) this.x = 0;
+            // Правая граница: середина экрана (чтобы не врезаться в спавн)
+            if (this.x > canvas.width - 500) this.x = canvas.width - 500;
+
+            // ФИЗИКА ПРЫЖКА
+            this.dy += this.gravity; 
+            this.y += this.dy;
 
             if (this.y + this.h > GROUND_LEVEL) { 
                 this.y = GROUND_LEVEL - this.h; this.dy = 0; this.grounded = true; this.jumpCount = 0; 
@@ -340,17 +359,30 @@
         draw() { ctx.save(); ctx.translate(this.x+25, this.y+25); ctx.scale(Math.sin(this.angle), 1); ctx.drawImage(assets.items.coin, -25, -25, 50, 50); ctx.restore(); }
     }
 
-    // --- INPUT ---
-    const handleInput = (e) => {
+    // --- INPUT (КЛАВИАТУРА И ТАЧ) ---
+    const keys = {}; // Храним состояние кнопок (нажата/отпущена)
+
+    // Слушатели клавиатуры
+    window.addEventListener('keydown', e => {
+        keys[e.code] = true;
+        // Прыжок по нажатию (один раз)
+        if (isPlaying && (e.code === 'Space' || e.code === 'ArrowUp')) {
+            player.jump();
+        }
+    });
+    window.addEventListener('keyup', e => {
+        keys[e.code] = false;
+    });
+
+    // Слушатель тача (остается прыжок)
+    const handleTouch = (e) => {
         if (!isPlaying) return;
-        if (e.type === 'keydown' && (e.code === 'Space' || e.code === 'ArrowUp')) { player.jump(); }
-        else if (e.type === 'touchstart' || e.type === 'mousedown') { player.jump(); }
+        player.jump();
     };
 
-    window.addEventListener('keydown', handleInput);
     const container = document.getElementById('game-container');
-    container.addEventListener('mousedown', handleInput);
-    container.addEventListener('touchstart', handleInput, {passive: false});
+    container.addEventListener('mousedown', handleTouch);
+    container.addEventListener('touchstart', handleTouch, {passive: false});
 
     // --- BACKGROUND ---
     let bgX = 0; let bgIndex = 0;
@@ -388,16 +420,29 @@
                  particles.push(new Particle(o.x + o.w/2 + (Math.random()*10-5), o.y, 'bubble'));
             }
             
-            // Хитбоксы: ИНДИВИДУАЛЬНЫЕ отступы по X и Y
-            let padX = 0; let padY = 0;
-            if (o.type === 'banana') { padX = 15; padY = 20; } // Широкий, но очень низкий
-            else if (o.type === 'burger') { padX = 20; padY = 15; } // Компактный центр
-            else if (o.type === 'bottle') { padX = 15; padY = 10; } // Узкий, высокий
+            // --- ХИТБОКСЫ ---
+            const pBoxX = player.x + 70;
+            const pBoxW = player.w - 140;
+            const pBoxY = player.y + 40;
+            const pBoxH = player.h - 50;
 
-            if (player.x < o.x + o.w - padX && 
-                player.x + player.w > o.x + padX && 
-                player.y < o.y + o.h - padY && 
-                player.y + player.h > o.y + padY) {
+            let obsBoxX = o.x;
+            let obsBoxW = o.w;
+            let obsBoxY = o.y;
+            let obsBoxH = o.h;
+
+            if (o.type === 'banana') {
+                obsBoxX += 10; obsBoxW -= 20; obsBoxY += 20; obsBoxH -= 40; 
+            } else if (o.type === 'burger') {
+                obsBoxX += 20; obsBoxW -= 40; obsBoxY += 15; obsBoxH -= 30;
+            } else if (o.type === 'bottle') {
+                obsBoxX += 15; obsBoxW -= 30; obsBoxY += 5; obsBoxH -= 5;
+            }
+
+            if (pBoxX < obsBoxX + obsBoxW &&
+                pBoxX + pBoxW > obsBoxX &&
+                pBoxY < obsBoxY + obsBoxH &&
+                pBoxY + pBoxH > obsBoxY) {
                 
                 if (!player.isHurt) {
                     lives--; 
@@ -411,7 +456,6 @@
         
         coins.forEach((c, i) => {
             c.update(); if (c.markedForDeletion) coins.splice(i, 1);
-            // Зона сбора монет тоже чуть меньше (отступ 60px)
             if (player.x < c.x + c.w - 60 && player.x + player.w > c.x + 60 && 
                 player.y < c.y + c.h - 60 && player.y + player.h > c.y + 60) {
                 score++; 
@@ -439,6 +483,7 @@
         lives = 3; document.getElementById('lives-display').innerText = lives;
         
         player.y = GROUND_LEVEL - player.h; player.dy = 0; player.grounded = false; player.jumpCount = 0;
+        player.x = 150; // Сброс позиции
         player.isHurt = false;
         
         bgX = 0; bgIndex = 0;
