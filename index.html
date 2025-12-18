@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Runner: Осенний Бегун</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runner: Степа на пробежке</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Carter+One&family=Fredoka+One&display=swap" rel="stylesheet">
@@ -13,148 +13,95 @@
             margin: 0; padding: 0;
             background: #1a1a1a;
             display: flex; justify-content: center; align-items: center;
-            height: 100vh; font-family: 'Fredoka One', cursive;
-            overflow: hidden; 
-            user-select: none; -webkit-user-select: none; touch-action: none;
+            min-height: 100vh; font-family: 'Fredoka One', cursive;
+            touch-action: manipulation;
         }
 
         #game-container {
             position: relative;
-            width: 100%; max-width: 800px; 
-            aspect-ratio: 2 / 1; 
-            height: auto;
+            width: 100%; max-width: 1280px; aspect-ratio: 16 / 9; height: auto;
             background-color: #87CEEB;
             border: 4px solid #3e2723; border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.7); overflow: hidden;
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* --- СООБЩЕНИЕ "ПОВЕРНИ ТЕЛЕФОН" --- */
-        #rotate-message {
-            display: none; /* Скрыто по умолчанию */
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #2d1e1b; z-index: 100;
-            flex-direction: column; justify-content: center; align-items: center;
-            color: #FFD700; text-align: center;
-        }
-        
-        .rotate-icon { font-size: 60px; margin-bottom: 20px; animation: rotate 2s infinite; }
-        
-        @keyframes rotate {
-            0% { transform: rotate(0deg); }
-            50% { transform: rotate(-90deg); }
-            100% { transform: rotate(0deg); }
-        }
-
-        /* --- МАГИЯ АДАПТАЦИИ --- */
-        
-        /* Если экран вертикальный (телефон) */
-        @media only screen and (max-width: 900px) and (orientation: portrait) {
-            #game-container { display: none; } /* Скрываем игру */
-            #rotate-message { display: flex; } /* Показываем просьбу повернуть */
-        }
-
-        /* Если экран горизонтальный (телефон) - РЕЖИМ ИГРЫ */
-        @media only screen and (max-width: 900px) and (orientation: landscape) {
-            #game-container {
-                width: 100vw;       /* На всю ширину */
-                height: 100vh;      /* На всю высоту */
-                max-width: none;    /* Убираем ограничение 800px */
-                aspect-ratio: auto; /* Убираем фиксацию пропорций */
-                border: none;       /* Убираем рамку */
-                border-radius: 0;   /* Убираем скругления */
-                box-shadow: none;
-            }
-            body { background: #000; } /* Черный фон вокруг, если есть */
-        }
-        
-        /* ----------------------- */
-
-        canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
+        canvas { display: block; width: 100%; height: 100%; }
 
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; display: flex; flex-direction: column;
-            justify-content: space-between; padding: 15px; box-sizing: border-box; z-index: 5;
+            justify-content: space-between; padding: 20px; box-sizing: border-box; z-index: 5;
         }
 
         .hud {
             display: flex; justify-content: space-between; align-items: flex-start;
-            font-size: 24px; color: #FFD700; text-shadow: 2px 2px 0 #3e2723;
+            font-size: 32px; color: #FFD700; text-shadow: 3px 3px 0 #3e2723;
         }
-        .hud-left { display: flex; flex-direction: column; gap: 8px; }
-
+        .hud-left { display: flex; flex-direction: column; gap: 12px; }
         .stat-wrap {
-            display: flex; align-items: center; gap: 10px;
-            background: rgba(93, 64, 55, 0.9); padding: 5px 15px; border-radius: 20px;
-            border: 2px solid #FFD700; box-shadow: 0 4px 6px rgba(0,0,0,0.3); width: fit-content;
+            display: flex; align-items: center; gap: 15px;
+            background: rgba(93, 64, 55, 0.9); padding: 8px 20px; border-radius: 25px;
+            border: 3px solid #FFD700; box-shadow: 0 5px 8px rgba(0,0,0,0.3); width: fit-content;
         }
-        .icon { width: 32px; height: 32px; object-fit: contain; }
+        .icon { width: 40px; height: 40px; object-fit: contain; }
 
-        @media (max-width: 600px) and (orientation: landscape) {
-            .hud { font-size: 16px; }
-            .stat-wrap { padding: 4px 10px; border-radius: 12px; border-width: 1px; gap: 6px; }
-            .icon { width: 20px; height: 20px; }
-            button { font-size: 18px !important; padding: 10px 30px !important; margin-top: 5px !important; }
-            h1 { font-size: 24px !important; margin-bottom: 5px !important; }
+        @media (max-width: 900px) {
+            .hud { font-size: 20px; }
+            .stat-wrap { padding: 5px 12px; border-radius: 15px; border-width: 2px; gap: 8px; }
+            .icon { width: 24px; height: 24px; }
+            .hud-left { gap: 6px; }
+            h1 { font-size: 36px !important; margin-bottom: 15px !important; }
+            .menu-item { font-size: 24px !important; margin: 15px 0 !important; }
+            #final-score { font-size: 40px !important; }
+            button { font-size: 22px !important; padding: 15px 40px !important; }
         }
 
         #loading-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #2d1e1b; z-index: 20;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: white; font-size: 18px;
+            color: white; font-size: 28px;
         }
         #progress-bar {
-            width: 50%; height: 15px; background: #555; margin-top: 15px;
-            border-radius: 10px; overflow: hidden; border: 2px solid #fff;
+            width: 60%; height: 20px; background: #555; margin-top: 25px;
+            border-radius: 15px; overflow: hidden; border: 3px solid #fff;
         }
         #progress-fill { width: 0%; height: 100%; background: #00ff00; transition: width 0.2s; }
 
         #start-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 10; pointer-events: auto; cursor: pointer;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
         }
-        .splash-image-bg { position: absolute; top:0; left:0; width: 100%; height: 100%; object-fit: cover; z-index: -1; }
-        
-        /* Кнопка Fullscreen на старте */
-        #fs-btn {
-            margin-top: 150px; /* Сдвигаем вниз */
-            font-size: 14px; padding: 5px 15px; background: rgba(0,0,0,0.5); border: 1px solid white;
-        }
+        .splash-image-bg { width: 100%; height: 100%; object-fit: cover; }
 
         #game-over-screen {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             text-align: center; z-index: 10; pointer-events: auto;
             background: linear-gradient(to bottom, #5d4037, #3e2723);
-            padding: 20px; border-radius: 20px; border: 4px solid #2d1e1b;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.8); color: white; width: 70%; max-width: 400px;
+            padding: 30px; border-radius: 25px; border: 5px solid #2d1e1b;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.8); color: white; width: 80%; max-width: 500px;
         }
 
-        h1 { margin: 0 0 20px 0; font-size: 40px; color: #FF5722; text-transform: uppercase; text-shadow: 3px 3px 0 #2d1e1b; }
-        .menu-item { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 24px; color: #FFD700; margin: 20px 0; }
+        h1 { margin: 0 0 25px 0; font-size: 56px; color: #FF5722; text-transform: uppercase; text-shadow: 4px 4px 0 #2d1e1b; font-family: 'Carter One', cursive; }
+        .menu-item { display: flex; align-items: center; justify-content: center; gap: 15px; font-size: 32px; color: #FFD700; margin: 25px 0; }
 
         button {
             font-family: 'Carter One', cursive;
             background: linear-gradient(to bottom, #ff8f00, #d84315);
-            border: 3px solid #3e2723; padding: 15px 50px; font-size: 24px; color: #fff;
-            cursor: pointer; border-radius: 40px; text-transform: uppercase;
-            box-shadow: 0 6px 0 #2d1e1b; margin-top: 15px;
+            border: 4px solid #3e2723; padding: 20px 60px; font-size: 32px; color: #fff;
+            cursor: pointer; border-radius: 50px; text-transform: uppercase;
+            box-shadow: 0 8px 0 #2d1e1b; margin-top: 20px;
+            transition: transform 0.1s;
         }
+        button:active { transform: translateY(4px); box-shadow: 0 4px 0 #2d1e1b; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-<div id="rotate-message">
-    <div class="rotate-icon">📱 ➡️ 🔄</div>
-    <h2>Пожалуйста, поверните телефон</h2>
-    <p>Для игры нужен горизонтальный режим</p>
-</div>
-
 <div id="game-container">
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <canvas id="gameCanvas" width="1280" height="720"></canvas>
     
     <div id="ui-layer">
         <div class="hud">
@@ -179,11 +126,8 @@
         <div id="progress-bar"><div id="progress-fill"></div></div>
     </div>
 
-    <div id="start-screen" class="hidden">
-        <img src="assets/splash.png" class="splash-image-bg" alt="Start">
-        <div style="position:absolute; width:100%; height:100%;" onclick="startGame()"></div>
-        
-        <button id="fs-btn" onclick="toggleFullScreen()">На весь экран</button>
+    <div id="start-screen" class="hidden" onclick="startGame()">
+        <img src="assets/splash.png" class="splash-image-bg" alt="Степа на пробежке">
     </div>
 
     <div id="game-over-screen" class="hidden">
@@ -200,16 +144,7 @@
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    
-    // Функция полноэкранного режима
-    function toggleFullScreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch((e) => console.log(e));
-        }
-    }
-
-    // Canvas всегда имеет фиксированное разрешение внутри, но CSS его растягивает
-    function resizeCanvas() { canvas.width = 800; canvas.height = 400; }
+    function resizeCanvas() { canvas.width = 1280; canvas.height = 720; }
     resizeCanvas();
 
     // --- ASSETS ---
@@ -236,7 +171,6 @@
         loadedAssets++;
         const percent = Math.floor((loadedAssets / assetsToLoad.length) * 100);
         document.getElementById('progress-fill').style.width = `${percent}%`;
-        
         if (loadedAssets >= assetsToLoad.length) {
             setTimeout(() => {
                 document.getElementById('loading-screen').classList.add('hidden');
@@ -285,14 +219,14 @@
     let gameSpeed = 5;
     let isPlaying = false;
     let animationId;
-    const GROUND_LEVEL = 370; 
+    const GROUND_LEVEL = 680; 
 
     document.getElementById('highscore-display').innerText = `${highScore}`;
 
     // --- PLAYER ---
     const player = {
-        x: 100, y: 240, w: 144, h: 192, dy: 0,
-        jumpForce: 13, gravity: 0.6, grounded: false,
+        x: 150, y: 380, w: 230, h: 300, 
+        dy: 0, jumpForce: 22, gravity: 1.1, grounded: false,
         jumpCount: 0, maxJumps: 2,
         currentFrameIndex: 0, totalFrames: 48, frameTimer: 0, frameInterval: 2,
         isHurt: false, hurtTimer: 0,
@@ -313,7 +247,7 @@
             ctx.save();
             ctx.fillStyle = "rgba(0, 0, 0, 0.1)"; 
             ctx.beginPath();
-            ctx.ellipse(this.x + this.w / 2, this.y + this.h - 5, this.w / 2.5, this.w / 8, 0, 0, Math.PI * 2);
+            ctx.ellipse(this.x + this.w / 2, this.y + this.h - 10, this.w / 2.2, this.w / 7, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
             const img = assets.player.find(i => i.src.includes(`run_${this.currentFrameIndex}.png`));
@@ -345,26 +279,45 @@
     // --- PARTICLES ---
     const particles = [];
     class Particle {
-        constructor(x, y) {
-            this.x = x; this.y = y; this.size = Math.random()*5+3; 
-            this.vx = Math.random()*6-3; this.vy = Math.random()*6-3; this.life = 1;
+        constructor(x, y, type = 'gold') {
+            this.x = x; this.y = y; this.type = type;
+            if (type === 'gold') {
+                this.size = Math.random()*6+4; this.vx = Math.random()*8-4; this.vy = Math.random()*8-4; this.life = 1; this.color = '#FFD700';
+            } else if (type === 'stink') {
+                this.size = Math.random()*10+5; this.vx = Math.random()*2-1; this.vy = -Math.random()*2; this.life = 0.8; this.color = 'rgba(101, 80, 33, 0.5)';
+            } else if (type === 'bubble') {
+                this.size = Math.random()*6+3; this.vx = Math.random()*1-0.5; this.vy = -Math.random()*4-2; this.life = 1; this.color = 'rgba(135, 206, 235, 0.6)';
+            }
         }
-        update() { this.x += this.vx; this.y += this.vy; this.size *= 0.95; this.life -= 0.05; }
-        draw() { ctx.save(); ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = '#FFD700'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); ctx.restore(); }
+        update() { 
+            this.x += this.vx; this.y += this.vy; 
+            if(this.type === 'gold') this.size *= 0.95; 
+            this.life -= (this.type === 'gold' ? 0.03 : 0.02); 
+        }
+        draw() { 
+            ctx.save(); ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color; 
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); 
+            if(this.type === 'bubble') { ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth=1; ctx.stroke(); }
+            ctx.restore(); 
+        }
     }
 
     // --- OBJECTS ---
     const obstacles = []; const coins = [];
     class Obstacle {
         constructor() {
-            this.x = 800; const r = Math.random();
+            this.x = 1400; const r = Math.random();
             if (r < 0.33) { 
-                this.type = 'banana'; this.w = 40; this.h = 30; this.y = GROUND_LEVEL - 30; 
+                // БАНАН: 70x50
+                this.type = 'banana'; this.w = 70; this.h = 50; this.y = GROUND_LEVEL - 50; 
             } else if (r < 0.66) { 
-                this.type = 'burger'; this.w = 50; this.h = 40; 
-                if (Math.random() < 0.5) this.y = GROUND_LEVEL - 130; else this.y = GROUND_LEVEL - 40;
+                // БУРГЕР: Уменьшен на 20% -> 72x56
+                this.type = 'burger'; this.w = 72; this.h = 56; 
+                // Высота полета скорректирована под новый размер
+                if (Math.random() < 0.5) this.y = GROUND_LEVEL - 280; else this.y = GROUND_LEVEL - 56;
             } else { 
-                this.type = 'bottle'; this.w = 35; this.h = 70; this.y = GROUND_LEVEL - this.h; 
+                // БУТЫЛКА: Уменьшена на 20% -> 48x96
+                this.type = 'bottle'; this.w = 48; this.h = 96; this.y = GROUND_LEVEL - this.h; 
             }
             this.markedForDeletion = false;
         }
@@ -376,16 +329,13 @@
         }
     }
     class Coin {
-        constructor() { this.w = 30; this.h = 30; this.x = 800 + Math.random()*200; this.y = 150 + Math.random()*100; this.angle = 0; }
+        constructor() { this.w = 50; this.h = 50; this.x = 1400 + Math.random()*300; this.y = 250 + Math.random()*300; this.angle = 0; }
         update() { this.x -= gameSpeed; this.angle += 0.1; if (this.x + this.w < 0) this.markedForDeletion = true; this.draw(); }
-        draw() { ctx.save(); ctx.translate(this.x+15, this.y+15); ctx.scale(Math.sin(this.angle), 1); ctx.drawImage(assets.items.coin, -15, -15, 30, 30); ctx.restore(); }
+        draw() { ctx.save(); ctx.translate(this.x+25, this.y+25); ctx.scale(Math.sin(this.angle), 1); ctx.drawImage(assets.items.coin, -25, -25, 50, 50); ctx.restore(); }
     }
 
     // --- INPUT ---
     const handleInput = (e) => {
-        // Игнорируем клик, если нажали на кнопку фулскрина
-        if (e.target.id === 'fs-btn') return;
-
         if (!isPlaying) return;
         if (e.type === 'keydown' && (e.code === 'Space' || e.code === 'ArrowUp')) { player.jump(); }
         else if (e.type === 'touchstart' || e.type === 'mousedown') { player.jump(); }
@@ -425,9 +375,17 @@
         obstacles.forEach((o, i) => {
             o.update(); if (o.markedForDeletion) obstacles.splice(i, 1);
             
-            let padding = 15; 
-            if (o.type === 'banana') padding = 12; 
-            if (o.type === 'burger') padding = 20; 
+            if (o.type === 'burger' && Math.random() < 0.2) {
+                particles.push(new Particle(o.x + o.w/2 + (Math.random()*20-10), o.y + 20, 'stink'));
+            }
+            if (o.type === 'bottle' && Math.random() < 0.3) {
+                 particles.push(new Particle(o.x + o.w/2 + (Math.random()*10-5), o.y, 'bubble'));
+            }
+            
+            // Хитбоксы: Увеличен padding для уменьшения зоны поражения
+            let padding = 25; // Базовая (для бутылки)
+            if (o.type === 'banana') padding = 20; 
+            if (o.type === 'burger') padding = 30; 
 
             if (player.x < o.x + o.w - padding && 
                 player.x + player.w > o.x + padding && 
@@ -446,11 +404,11 @@
         
         coins.forEach((c, i) => {
             c.update(); if (c.markedForDeletion) coins.splice(i, 1);
-            if (player.x < c.x + c.w - 40 && player.x + player.w > c.x + 40 && 
-                player.y < c.y + c.h - 40 && player.y + player.h > c.y + 40) {
+            if (player.x < c.x + c.w - 60 && player.x + player.w > c.x + 60 && 
+                player.y < c.y + c.h - 60 && player.y + player.h > c.y + 60) {
                 score++; 
                 if(assets.sounds.coin) { assets.sounds.coin.currentTime = 0; assets.sounds.coin.play().catch(()=>{}); }
-                for(let k=0; k<15; k++) particles.push(new Particle(c.x+15, c.y+15)); 
+                for(let k=0; k<15; k++) particles.push(new Particle(c.x+25, c.y+25, 'gold')); 
                 coins.splice(i, 1);
             }
         });
@@ -465,7 +423,7 @@
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('game-over-screen').classList.add('hidden');
         obstacles.length = 0; coins.length = 0; particles.length = 0;
-        score = 0; frames = 0; gameSpeed = 6;
+        score = 0; frames = 0; gameSpeed = 7; 
         lives = 3; document.getElementById('lives-display').innerText = lives;
         
         player.y = GROUND_LEVEL - player.h; player.dy = 0; player.grounded = false; player.jumpCount = 0;
