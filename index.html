@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Runner: Степа на пробежке</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,9 @@
             background: #1a1a1a;
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; font-family: 'Fredoka One', cursive;
-            touch-action: manipulation;
+            touch-action: none; /* Отключаем системные жесты */
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         #game-container {
@@ -49,7 +51,37 @@
         }
         .icon { width: 40px; height: 40px; object-fit: contain; }
 
-        /* Вертикальный режим */
+        /* --- МОБИЛЬНОЕ УПРАВЛЕНИЕ (КНОПКИ) --- */
+        #mobile-controls {
+            display: none; /* На ПК скрыто */
+            position: absolute; 
+            bottom: 20px; left: 20px;
+            gap: 20px;
+            z-index: 20;
+        }
+
+        .control-btn {
+            width: 80px; height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 40px; color: white;
+            pointer-events: auto; /* Чтобы на них можно было нажать */
+            touch-action: none;
+        }
+        
+        .control-btn:active {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(0.95);
+        }
+
+        /* Показываем кнопки только на тач-устройствах или маленьких экранах */
+        @media (hover: none) and (pointer: coarse), (max-width: 1000px) {
+            #mobile-controls { display: flex; }
+        }
+
+        /* Адаптация UI */
         @media (max-width: 600px) and (orientation: portrait) {
             #ui-layer { padding: 10px; }
             .hud { font-size: 14px; flex-wrap: wrap; align-items: center; }
@@ -57,15 +89,19 @@
             .stat-wrap { padding: 4px 8px; border-radius: 10px; border-width: 1px; gap: 5px; background: rgba(93, 64, 55, 0.6); }
             .icon { width: 16px; height: 16px; }
             #highscore-label { display: none; }
+            
+            /* Кнопки чуть меньше в вертикалке */
+            .control-btn { width: 60px; height: 60px; font-size: 30px; }
+            #mobile-controls { bottom: 10px; left: 10px; gap: 10px; }
         }
 
-        /* Горизонтальный режим */
         @media (max-width: 900px) and (orientation: landscape) {
             .hud { font-size: 20px; }
             .stat-wrap { padding: 5px 12px; border-radius: 15px; border-width: 2px; }
             .icon { width: 24px; height: 24px; }
         }
 
+        /* ЭКРАНЫ */
         #loading-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #2d1e1b; z-index: 20;
@@ -128,6 +164,11 @@
                 <span id="highscore-label">Рек: </span><span id="highscore-display">0</span>
             </div>
         </div>
+        
+        <div id="mobile-controls">
+            <div class="control-btn" id="btn-left">⬅️</div>
+            <div class="control-btn" id="btn-right">➡️</div>
+        </div>
     </div>
 
     <div id="loading-screen">
@@ -166,6 +207,7 @@
         { type: 'img', name: 'burger', src: 'assets/burger.png' },
         { type: 'img', name: 'banana', src: 'assets/banana.png' },
         { type: 'img', name: 'heart', src: 'assets/heart.png' },
+        { type: 'img', name: 'medkit', src: 'assets/medkit.png' },
         { type: 'img', name: 'splash', src: 'assets/splash.png' },
         
         { type: 'audio', name: 'music', src: 'assets/music.mp3' },
@@ -237,9 +279,7 @@
         x: 150, y: 380, w: 230, h: 300, 
         dy: 0, jumpForce: 22, gravity: 1.1, grounded: false,
         jumpCount: 0, maxJumps: 2,
-        // НОВОЕ: Скорость движения влево/вправо
         moveSpeed: 8,
-        
         currentFrameIndex: 0, totalFrames: 48, frameTimer: 0, frameInterval: 2,
         isHurt: false, hurtTimer: 0,
 
@@ -272,21 +312,12 @@
                 if (this.hurtTimer <= 0) this.isHurt = false;
             }
             
-            // --- НОВОЕ УПРАВЛЕНИЕ: ВЛЕВО/ВПРАВО ---
-            if (keys['ArrowRight'] || keys['KeyD']) {
-                this.x += this.moveSpeed;
-            }
-            if (keys['ArrowLeft'] || keys['KeyA']) {
-                this.x -= this.moveSpeed;
-            }
+            if (keys['ArrowRight'] || keys['KeyD']) { this.x += this.moveSpeed; }
+            if (keys['ArrowLeft'] || keys['KeyA']) { this.x -= this.moveSpeed; }
             
-            // ОГРАНИЧЕНИЯ ЭКРАНА (чтобы не убежал)
-            // Левая граница: 0
             if (this.x < 0) this.x = 0;
-            // Правая граница: середина экрана (чтобы не врезаться в спавн)
             if (this.x > canvas.width - 500) this.x = canvas.width - 500;
 
-            // ФИЗИКА ПРЫЖКА
             this.dy += this.gravity; 
             this.y += this.dy;
 
@@ -312,6 +343,8 @@
             this.x = x; this.y = y; this.type = type;
             if (type === 'gold') {
                 this.size = Math.random()*6+4; this.vx = Math.random()*8-4; this.vy = Math.random()*8-4; this.life = 1; this.color = '#FFD700';
+            } else if (type === 'health') {
+                this.size = Math.random()*8+4; this.vx = Math.random()*4-2; this.vy = -Math.random()*5-2; this.life = 1.2; this.color = '#FF0000';
             } else if (type === 'stink') {
                 this.size = Math.random()*10+5; this.vx = Math.random()*2-1; this.vy = -Math.random()*2; this.life = 0.8; this.color = 'rgba(101, 80, 33, 0.5)';
             } else if (type === 'bubble') {
@@ -320,8 +353,8 @@
         }
         update() { 
             this.x += this.vx; this.y += this.vy; 
-            if(this.type === 'gold') this.size *= 0.95; 
-            this.life -= (this.type === 'gold' ? 0.03 : 0.02); 
+            if(this.type === 'gold' || this.type === 'health') this.size *= 0.95; 
+            this.life -= 0.02; 
         }
         draw() { 
             ctx.save(); ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color; 
@@ -332,7 +365,8 @@
     }
 
     // --- OBJECTS ---
-    const obstacles = []; const coins = [];
+    const obstacles = []; const coins = []; const medkits = [];
+    
     class Obstacle {
         constructor() {
             this.x = 1400; const r = Math.random();
@@ -358,31 +392,52 @@
         update() { this.x -= gameSpeed; this.angle += 0.1; if (this.x + this.w < 0) this.markedForDeletion = true; this.draw(); }
         draw() { ctx.save(); ctx.translate(this.x+25, this.y+25); ctx.scale(Math.sin(this.angle), 1); ctx.drawImage(assets.items.coin, -25, -25, 50, 50); ctx.restore(); }
     }
+    
+    class Medkit {
+        constructor() { 
+            this.w = 60; this.h = 50; this.x = 1400 + Math.random()*200; this.y = 250 + Math.random()*300; this.markedForDeletion = false;
+        }
+        update() { this.x -= gameSpeed; if (this.x + this.w < 0) this.markedForDeletion = true; this.draw(); }
+        draw() { ctx.drawImage(assets.items.medkit, this.x, this.y, this.w, this.h); }
+    }
 
-    // --- INPUT (КЛАВИАТУРА И ТАЧ) ---
-    const keys = {}; // Храним состояние кнопок (нажата/отпущена)
-
-    // Слушатели клавиатуры
+    // --- INPUT (KEYBOARD & TOUCH BUTTONS) ---
+    const keys = {}; 
     window.addEventListener('keydown', e => {
         keys[e.code] = true;
-        // Прыжок по нажатию (один раз)
-        if (isPlaying && (e.code === 'Space' || e.code === 'ArrowUp')) {
-            player.jump();
-        }
+        if (isPlaying && (e.code === 'Space' || e.code === 'ArrowUp')) { player.jump(); }
     });
-    window.addEventListener('keyup', e => {
-        keys[e.code] = false;
-    });
+    window.addEventListener('keyup', e => { keys[e.code] = false; });
 
-    // Слушатель тача (остается прыжок)
-    const handleTouch = (e) => {
-        if (!isPlaying) return;
-        player.jump();
+    // Сенсорное управление КНОПКАМИ (Влево/Вправо)
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+
+    const bindBtn = (btn, code) => {
+        btn.addEventListener('touchstart', (e) => { 
+            e.preventDefault(); 
+            e.stopPropagation(); // Не дает сработать прыжку
+            keys[code] = true; 
+        });
+        btn.addEventListener('touchend', (e) => { 
+            e.preventDefault(); 
+            e.stopPropagation(); 
+            keys[code] = false; 
+        });
     };
+    bindBtn(btnLeft, 'ArrowLeft');
+    bindBtn(btnRight, 'ArrowRight');
 
+    // Глобальный тач для ПРЫЖКА (срабатывает, если не попали по кнопкам)
+    const handleTouchJump = (e) => { 
+        // Проверяем, что нажали не на кнопки
+        if (e.target.classList.contains('control-btn')) return;
+        if (isPlaying) player.jump(); 
+    };
     const container = document.getElementById('game-container');
-    container.addEventListener('mousedown', handleTouch);
-    container.addEventListener('touchstart', handleTouch, {passive: false});
+    container.addEventListener('mousedown', handleTouchJump);
+    container.addEventListener('touchstart', handleTouchJump, {passive: false});
+
 
     // --- BACKGROUND ---
     let bgX = 0; let bgIndex = 0;
@@ -408,64 +463,55 @@
 
         frames++;
         if (frames % Math.floor(1000 / gameSpeed) === 0 && Math.random() < 0.6) obstacles.push(new Obstacle());
-        if (frames % 100 === 0) coins.push(new Coin()); 
+        if (frames % 100 === 0) coins.push(new Coin());
+        if (frames % 600 === 0 && Math.random() < 0.4) medkits.push(new Medkit());
 
+        // --- ПРЕПЯТСТВИЯ ---
         obstacles.forEach((o, i) => {
             o.update(); if (o.markedForDeletion) obstacles.splice(i, 1);
             
-            if (o.type === 'burger' && Math.random() < 0.2) {
-                particles.push(new Particle(o.x + o.w/2 + (Math.random()*20-10), o.y + 20, 'stink'));
-            }
-            if (o.type === 'bottle' && Math.random() < 0.3) {
-                 particles.push(new Particle(o.x + o.w/2 + (Math.random()*10-5), o.y, 'bubble'));
-            }
+            if (o.type === 'burger' && Math.random() < 0.2) { particles.push(new Particle(o.x + o.w/2 + (Math.random()*20-10), o.y + 20, 'stink')); }
+            if (o.type === 'bottle' && Math.random() < 0.3) { particles.push(new Particle(o.x + o.w/2 + (Math.random()*10-5), o.y, 'bubble')); }
             
-            // --- ХИТБОКСЫ ---
-            const pBoxX = player.x + 70;
-            const pBoxW = player.w - 140;
-            const pBoxY = player.y + 40;
-            const pBoxH = player.h - 50;
+            const pBoxX = player.x + 70; const pBoxW = player.w - 140; const pBoxY = player.y + 40; const pBoxH = player.h - 50;
+            let obsBoxX = o.x; let obsBoxW = o.w; let obsBoxY = o.y; let obsBoxH = o.h;
 
-            let obsBoxX = o.x;
-            let obsBoxW = o.w;
-            let obsBoxY = o.y;
-            let obsBoxH = o.h;
+            if (o.type === 'banana') { obsBoxX += 10; obsBoxW -= 20; obsBoxY += 20; obsBoxH -= 40; } 
+            else if (o.type === 'burger') { obsBoxX += 20; obsBoxW -= 40; obsBoxY += 15; obsBoxH -= 30; } 
+            else if (o.type === 'bottle') { obsBoxX += 15; obsBoxW -= 30; obsBoxY += 5; obsBoxH -= 5; }
 
-            if (o.type === 'banana') {
-                obsBoxX += 10; obsBoxW -= 20; obsBoxY += 20; obsBoxH -= 40; 
-            } else if (o.type === 'burger') {
-                obsBoxX += 20; obsBoxW -= 40; obsBoxY += 15; obsBoxH -= 30;
-            } else if (o.type === 'bottle') {
-                obsBoxX += 15; obsBoxW -= 30; obsBoxY += 5; obsBoxH -= 5;
-            }
-
-            if (pBoxX < obsBoxX + obsBoxW &&
-                pBoxX + pBoxW > obsBoxX &&
-                pBoxY < obsBoxY + obsBoxH &&
-                pBoxY + pBoxH > obsBoxY) {
-                
+            if (pBoxX < obsBoxX + obsBoxW && pBoxX + pBoxW > obsBoxX && pBoxY < obsBoxY + obsBoxH && pBoxY + pBoxH > obsBoxY) {
                 if (!player.isHurt) {
-                    lives--; 
-                    document.getElementById('lives-display').innerText = lives;
+                    lives--; document.getElementById('lives-display').innerText = lives;
                     if(assets.sounds.fail) { assets.sounds.fail.currentTime = 0; assets.sounds.fail.play().catch(()=>{}); }
-                    if (lives <= 0) gameOver();
-                    else { player.isHurt = true; player.hurtTimer = 100; }
+                    if (lives <= 0) gameOver(); else { player.isHurt = true; player.hurtTimer = 100; }
                 }
             }
         });
         
+        // --- МОНЕТЫ ---
         coins.forEach((c, i) => {
             c.update(); if (c.markedForDeletion) coins.splice(i, 1);
-            if (player.x < c.x + c.w - 60 && player.x + player.w > c.x + 60 && 
-                player.y < c.y + c.h - 60 && player.y + player.h > c.y + 60) {
+            if (player.x < c.x + c.w - 60 && player.x + player.w > c.x + 60 && player.y < c.y + c.h - 60 && player.y + player.h > c.y + 60) {
                 score++; 
-                if(assets.sounds.coin) { 
-                    assets.sounds.coin.volume = 0.5;
-                    assets.sounds.coin.currentTime = 0; 
-                    assets.sounds.coin.play().catch(()=>{}); 
-                }
+                if(assets.sounds.coin) { assets.sounds.coin.volume = 0.5; assets.sounds.coin.currentTime = 0; assets.sounds.coin.play().catch(()=>{}); }
                 for(let k=0; k<15; k++) particles.push(new Particle(c.x+25, c.y+25, 'gold')); 
                 coins.splice(i, 1);
+            }
+        });
+
+        // --- АПТЕЧКИ ---
+        medkits.forEach((m, i) => {
+            m.update(); if (m.markedForDeletion) medkits.splice(i, 1);
+            if (player.x < m.x + m.w - 40 && player.x + player.w > m.x + 40 && player.y < m.y + m.h - 40 && player.y + player.h > m.y + 40) {
+                if (lives < 3) {
+                    lives++; document.getElementById('lives-display').innerText = lives;
+                    for(let k=0; k<20; k++) particles.push(new Particle(m.x+30, m.y+25, 'health'));
+                } else {
+                    score++; for(let k=0; k<15; k++) particles.push(new Particle(m.x+30, m.y+25, 'gold'));
+                }
+                if(assets.sounds.coin) { assets.sounds.coin.volume = 0.5; assets.sounds.coin.currentTime = 0; assets.sounds.coin.play().catch(()=>{}); }
+                medkits.splice(i, 1);
             }
         });
 
@@ -478,12 +524,12 @@
         assets.bgs.sort((a, b) => a.src.localeCompare(b.src));
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('game-over-screen').classList.add('hidden');
-        obstacles.length = 0; coins.length = 0; particles.length = 0;
+        obstacles.length = 0; coins.length = 0; medkits.length = 0; particles.length = 0; // Сброс всего
         score = 0; frames = 0; gameSpeed = 7; 
         lives = 3; document.getElementById('lives-display').innerText = lives;
         
         player.y = GROUND_LEVEL - player.h; player.dy = 0; player.grounded = false; player.jumpCount = 0;
-        player.x = 150; // Сброс позиции
+        player.x = 150; 
         player.isHurt = false;
         
         bgX = 0; bgIndex = 0;
